@@ -1,30 +1,41 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const { QRBill } = require("qrbill");
+const QRCode = require("qrcode");
+const sharp = require("sharp");
 
 const app = express();
 app.use(bodyParser.json());
 
 app.post("/api/generate", async (req, res) => {
   try {
-    const bill = new QRBill({
-      account: req.body.account,
-      amount: req.body.amount,
-      currency: req.body.currency || "CHF",
-      creditor: {
-        name: req.body.creditor.name,
-        address: req.body.creditor.address,
-        zip: req.body.creditor.zip,
-        city: req.body.creditor.city,
-        country: req.body.creditor.country
-      },
-      reference: req.body.reference,
-      additionalInfo: req.body.additionalInfo
-    });
+    const {
+      account,
+      amount,
+      currency,
+      creditor,
+      reference,
+      additionalInfo
+    } = req.body;
 
-    const svg = bill.toSVG();
-    res.setHeader("Content-Type", "image/svg+xml");
-    res.status(200).send(svg);
+    const qrContent = [
+      "SPC", "0200", "1",
+      account,
+      creditor.name,
+      creditor.address,
+      creditor.zip + " " + creditor.city,
+      creditor.country,
+      "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+      amount.toFixed(2),
+      currency,
+      reference,
+      additionalInfo || ""
+    ].join("\n");
+
+    const svg = await QRCode.toString(qrContent, { type: "svg" });
+    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+
+    res.setHeader("Content-Type", "image/png");
+    res.status(200).send(pngBuffer);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -38,4 +49,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
