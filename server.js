@@ -1,68 +1,90 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const PDFDocument = require("pdfkit");
-const { SwissQRBill } = require("swissqrbill/pdf");
+const QRCode = require("qrcode");
 const sharp = require("sharp");
+const SwissQRBill = require("swissqrbill").default;
 
 const app = express();
 app.use(bodyParser.json());
 
-app.post("/api/generate", (req, res) => {
+app.post("/api/generate", async (req, res) => {
   try {
-    const data = {
-      amount: req.body.amount,
+    const {
+      account,
+      amount,
+      currency,
+      creditor,
+      reference,
+      additionalInfo,
+      debtor
+    } = req.body;
+
+    // 1. Contenuto ISO 20022 per QR puro
+    const qrContent = [
+      "SPC", "0200", "1",
+      account,
+      creditor.name,
+      creditor.address,
+      `${creditor.zip} ${creditor.city}`,
+      creditor.country,
+      "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+      amount.toFixed(2),
+      currency,
+      reference,
+      additionalInfo || ""
+    ].join("\n");
+
+    // 2. Genera SVG del solo QR
+    const qrSVG = await QRCode.toString(qrContent, { type: "svg" });
+
+    // 3. Crea dati per SwissQRBill (layout + croce)
+    const billData = {
+      version: "0200",
+      codingType: "1",
+      account,
       creditor: {
-        account: req.body.account,
-        name: req.body.creditor.name,
-        address: req.body.creditor.address,
-        buildingNumber: req.body.creditor.buildingNumber || "",
-        city: req.body.creditor.city,
-        zip: req.body.creditor.zip,
-        country: req.body.creditor.country
+        name: creditor.name,
+        address: creditor.address,
+        buildingNumber: creditor.buildingNumber || "",
+        zip: creditor.zip,
+        city: creditor.city,
+        country: creditor.country
       },
-      currency: req.body.currency || "CHF",
-      reference: req.body.reference,
-      // opzionale: aggiunge ulteriori dati se servono
-      debtor: req.body.debtor || {},
-      additionalInfo: req.body.additionalInfo || ""
+      amount,
+      currency,
+      reference,
+      additionalInformation: additionalInfo || "",
+      debtor: {
+        name: debtor?.name || "",
+        address: debtor?.address || "",
+        buildingNumber: debtor?.buildingNumber || "",
+        zip: debtor?.zip || "",
+        city: debtor?.city || "",
+        country: debtor?.country || ""
+      }
     };
 
-    // Crea PDF con PDFKit e SwissQRBill
-    const doc = new PDFDocument({ size: "A6", margin: 10 });
-    const qrBill = new SwissQRBill(data);
-    qrBill.attachTo(doc);
+    // 4. Genera SVG ufficiale con SwissQRBill
+    const svgBill = SwissQRBill(billData, { width: 1050, height: 2100 });
 
-    const buffers = [];
-    doc.on("data", buffers.push.bind(buffers));
-    doc.on("end", async () => {
-      try {
-        const pdfBuffer = Buffer.concat(buffers);
-        // Converte il PDF in PNG a 300 DPI
-        const pngBuffer = await sharp(pdfBuffer, { density: 300 })
-          .png()
-          .toBuffer();
+    // 5. Converti l’SVG in PNG
+    const pngBuffer = await sharp(Buffer.from(svgBill))
+      .png()
+      .toBuffer();
 
-        res.setHeader("Content-Type", "image/png");
-        res.status(200).send(pngBuffer);
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
-    });
+    res.setHeader("Content-Type", "image/png");
+    res.status(200).send(pngBuffer);
 
-    doc.end();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("Suiquerre QR Swiss API is running");
-});
+app.get("/", (req, res) => res.send("API QR Swiss in esecuzione"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server su port ${PORT}`));
+
 
 
 
