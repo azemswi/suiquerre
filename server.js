@@ -1,8 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const QRCode = require("qrcode");
 const sharp = require("sharp");
-const SwissQRBill = require("swissqrbill").default;
+const { SwissQRBill } = require("swissqrbill");
 
 const app = express();
 app.use(bodyParser.json());
@@ -19,25 +18,7 @@ app.post("/api/generate", async (req, res) => {
       debtor
     } = req.body;
 
-    // 1. Contenuto ISO 20022 per QR puro
-    const qrContent = [
-      "SPC", "0200", "1",
-      account,
-      creditor.name,
-      creditor.address,
-      `${creditor.zip} ${creditor.city}`,
-      creditor.country,
-      "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-      amount.toFixed(2),
-      currency,
-      reference,
-      additionalInfo || ""
-    ].join("\n");
-
-    // 2. Genera SVG del solo QR
-    const qrSVG = await QRCode.toString(qrContent, { type: "svg" });
-
-    // 3. Crea dati per SwissQRBill (layout + croce)
+    // Prepara i dati per SwissQRBill
     const billData = {
       version: "0200",
       codingType: "1",
@@ -50,9 +31,9 @@ app.post("/api/generate", async (req, res) => {
         city: creditor.city,
         country: creditor.country
       },
-      amount,
-      currency,
-      reference,
+      amount: parseFloat(amount),
+      currency: currency || "CHF",
+      reference: reference || "",
       additionalInformation: additionalInfo || "",
       debtor: {
         name: debtor?.name || "",
@@ -64,11 +45,15 @@ app.post("/api/generate", async (req, res) => {
       }
     };
 
-    // 4. Genera SVG ufficiale con SwissQRBill
-    const svgBill = SwissQRBill(billData, { width: 1050, height: 2100 });
+    // Genera l’SVG ufficiale (layout + QR + croce)
+    const svgBill = SwissQRBill(billData, {
+      format: "svg",
+      width: 1050,
+      height: 2100
+    });
 
-    // 5. Converti l’SVG in PNG
-    const pngBuffer = await sharp(Buffer.from(svgBill))
+    // Converte l’SVG in PNG
+    const pngBuffer = await sharp(Buffer.from(svgBill, "utf-8"))
       .png()
       .toBuffer();
 
@@ -84,6 +69,7 @@ app.get("/", (req, res) => res.send("API QR Swiss in esecuzione"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server su port ${PORT}`));
+
 
 
 
