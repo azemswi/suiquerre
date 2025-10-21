@@ -1,7 +1,7 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const sharp = require("sharp");
-const { SwissQRBill } = require("swissqrbill");
+import express from "express";
+import bodyParser from "body-parser";
+import sharp from "sharp";
+import { SwissQRBill } from "swissqrbill";
 
 const app = express();
 app.use(bodyParser.json());
@@ -18,41 +18,24 @@ app.post("/api/generate", async (req, res) => {
       debtor
     } = req.body;
 
-    // Prepara i dati per SwissQRBill
     const billData = {
       version: "0200",
       codingType: "1",
       account,
-      creditor: {
-        name: creditor.name,
-        address: creditor.address,
-        buildingNumber: creditor.buildingNumber || "",
-        zip: creditor.zip,
-        city: creditor.city,
-        country: creditor.country
-      },
+      creditor,
       amount: parseFloat(amount),
       currency: currency || "CHF",
       reference: reference || "",
       additionalInformation: additionalInfo || "",
-      debtor: {
-        name: debtor?.name || "",
-        address: debtor?.address || "",
-        buildingNumber: debtor?.buildingNumber || "",
-        zip: debtor?.zip || "",
-        city: debtor?.city || "",
-        country: debtor?.country || ""
-      }
+      debtor
     };
 
-    // Genera l’SVG ufficiale (layout + QR + croce)
     const svgBill = SwissQRBill(billData, {
       format: "svg",
       width: 1050,
       height: 2100
     });
 
-    // Converte l’SVG in PNG
     const pngBuffer = await sharp(Buffer.from(svgBill, "utf-8"))
       .png()
       .toBuffer();
@@ -61,14 +44,16 @@ app.post("/api/generate", async (req, res) => {
     res.status(200).send(pngBuffer);
 
   } catch (err) {
+    console.error("Errore generazione:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/", (req, res) => res.send("API QR Swiss in esecuzione"));
+app.get("/", (req, res) => res.send("API QR Swiss in esecuzione ✅"));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server su port ${PORT}`));
+app.listen(PORT, () => console.log(`Server attivo su porta ${PORT}`));
+
 
 
 
