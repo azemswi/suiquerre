@@ -1,7 +1,7 @@
-import express from "express";
-import bodyParser from "body-parser";
-import sharp from "sharp";
-import { SwissQRBill } from "swissqrbill";
+const express = require("express");
+const bodyParser = require("body-parser");
+const sharp = require("sharp");
+const { SwissQRBill } = require("swissqrbill");
 
 const app = express();
 app.use(bodyParser.json());
@@ -52,6 +52,7 @@ app.get("/", (req, res) => res.send("API QR Swiss in esecuzione ✅"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server attivo su porta ${PORT}`));
+
 
 
 
