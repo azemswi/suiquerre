@@ -42,7 +42,6 @@ app.post("/api/generate", async (req, res) => {
 
     res.setHeader("Content-Type", "image/png");
     res.status(200).send(pngBuffer);
-
   } catch (err) {
     console.error("Errore generazione:", err);
     res.status(500).json({ error: err.message });
@@ -53,6 +52,7 @@ app.get("/", (req, res) => res.send("API QR Swiss in esecuzione ✅"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server attivo su porta ${PORT}`));
+
 
 
 
