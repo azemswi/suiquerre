@@ -1,7 +1,6 @@
 {
   "name": "suiquerre",
   "version": "1.0.0",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,7 +9,8 @@
     "express": "^4.18.2",
     "body-parser": "^1.20.2",
     "sharp": "^0.33.1",
-    "swissqrbill": "^4.2.0"
+    "swissqrbill": "3.3.1"
   }
 }
+
 
