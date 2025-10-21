@@ -6,9 +6,14 @@
     "start": "node server.js"
   },
   "dependencies": {
-  "express": "^4.18.2",
-  "body-parser": "^1.20.2",
-  "sharp": "^0.33.1",
-  "swissqrbill": "^4.2.0",
-  "googleapis": "^121.0.0"
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "qrcode": "^1.5.1",
+    "sharp": "^0.33.1",
+    "swissqrbill": "^4.2.0",
+    "googleapis": "^121.0.0"
+  },
+  "engines": {
+    "node": "20.x"
+  }
 }
