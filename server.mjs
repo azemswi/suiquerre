@@ -1,8 +1,7 @@
-// server.mjs
 import express from "express";
 import bodyParser from "body-parser";
 import sharp from "sharp";
-import { SwissQRBill } from "swissqrbill";
+import SwissQRBill from "swissqrbill"; // versione 3.1.0 usa default export
 import { google } from "googleapis";
 
 const app = express();
@@ -51,7 +50,7 @@ app.post("/api/generate-bill", async (req, res) => {
         city: data.debtor?.city || "CH",
         country: data.debtor?.country || "CH"
       }
-    }, { format: "svg", width: 1050, height: 2100 });
+    });
 
     // Converti SVG in PNG
     const pngBuffer = await sharp(Buffer.from(svgBill, "utf-8"))
